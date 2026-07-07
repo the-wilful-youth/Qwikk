@@ -45,10 +45,10 @@ class Ride
         float $distanceKm,
         float $fare,
         string $otp,
-        float $pickupLat,
-        float $pickupLng,
-        float $dropoffLat,
-        float $dropoffLng
+        float $pickupLat = 0.0,
+        float $pickupLng = 0.0,
+        float $dropoffLat = 0.0,
+        float $dropoffLng = 0.0
     ): int {
         if ($userId <= 0) {
             throw new InvalidArgumentException('Invalid user ID.');

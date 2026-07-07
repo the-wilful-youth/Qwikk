@@ -106,7 +106,6 @@ if (!empty($_SESSION['driver_id'])) {
                     'dropoff_lng'     => $rideRow['dropoff_lng'] !== null ? (float)$rideRow['dropoff_lng'] : null,
                     'distance_km'     => (float)$rideRow['distance_km'],
                     'fare'            => (float)$rideRow['fare'],
-                    'otp'             => $rideRow['otp'],
                     'ride_status'     => $rideRow['ride_status'],
                     'user_name'       => $rideRow['user_name'],
                     'user_mobile'     => $rideRow['user_mobile']

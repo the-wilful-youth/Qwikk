@@ -34,18 +34,27 @@ CREATE TABLE rides (
     user_id          INT          NOT NULL,
     driver_id        INT          DEFAULT NULL,
     pickup_location  VARCHAR(255) NOT NULL,
+    -- Geolocation for map display and routing
+    pickup_lat       DECIMAL(10,7) DEFAULT NULL,
+    pickup_lng       DECIMAL(10,7) DEFAULT NULL,
     destination      VARCHAR(255) NOT NULL,
+    dropoff_lat      DECIMAL(10,7) DEFAULT NULL,
+    dropoff_lng      DECIMAL(10,7) DEFAULT NULL,
     distance_km      DECIMAL(5,2) NOT NULL,
     fare             DECIMAL(8,2) NOT NULL,
-    -- Stored as bcrypt hash (60 chars), never plaintext
+    -- bcrypt hash for server-side OTP verification (driver/advance_ride.php)
     otp              VARCHAR(60)  NOT NULL,
-    ride_status      ENUM('waiting','accepted','driver_arrived','started','completed') DEFAULT 'waiting',
+    -- Plain 4-digit OTP returned to the passenger's UI so they can read it aloud
+    -- to the driver. Short-lived and ride-scoped; acceptable to store unencrypted
+    -- because it has zero value once the ride moves past 'driver_arrived'.
+    otp_plain        VARCHAR(4)   NOT NULL,
+    ride_status      ENUM('waiting','accepted','driver_arrived','started','completed','cancelled') DEFAULT 'waiting',
     payment_status   ENUM('pending','paid') DEFAULT 'pending',
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_ride_user   FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE,
     CONSTRAINT fk_ride_driver FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE SET NULL,
     -- Indexes for the two most common query patterns
-    INDEX idx_rides_user_id    (user_id),
+    INDEX idx_rides_user_id     (user_id),
     INDEX idx_rides_ride_status (ride_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -69,8 +78,8 @@ CREATE TABLE user_feedback (
     rating      TINYINT      NOT NULL CHECK (rating BETWEEN 1 AND 5),
     comments    TEXT         DEFAULT NULL,
     created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_feedback_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_feedback_ride FOREIGN KEY (ride_id) REFERENCES rides(id) ON DELETE CASCADE,
+    CONSTRAINT fk_feedback_user   FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE,
+    CONSTRAINT fk_feedback_ride   FOREIGN KEY (ride_id)   REFERENCES rides(id)   ON DELETE CASCADE,
     CONSTRAINT fk_feedback_driver FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE SET NULL,
     UNIQUE KEY uq_feedback_ride (ride_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
