@@ -928,7 +928,11 @@ document.addEventListener('DOMContentLoaded', () => {
         startWaitingForCaptain(json.ride_id);
     });
 
-    document.getElementById('btn-cancel-matching').addEventListener('click', () => {
+    document.getElementById('btn-cancel-matching').addEventListener('click', async () => {
+        const rideId = state.booking.rideId;
+        if (rideId) {
+            await apiPost('../user/cancel_ride.php', { ride_id: rideId }).catch(() => null);
+        }
         if (state.matchingPollInterval) {
             clearInterval(state.matchingPollInterval);
             state.matchingPollInterval = null;
@@ -937,7 +941,11 @@ document.addEventListener('DOMContentLoaded', () => {
         renderNearbyDrivers();
     });
 
-    document.getElementById('btn-cancel-ride').addEventListener('click', () => {
+    document.getElementById('btn-cancel-ride').addEventListener('click', async () => {
+        const rideId = state.booking.rideId;
+        if (rideId) {
+            await apiPost('../user/cancel_ride.php', { ride_id: rideId }).catch(() => null);
+        }
         if (state.matchingPollInterval) {
             clearInterval(state.matchingPollInterval);
             state.matchingPollInterval = null;
@@ -1587,6 +1595,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function startActiveDriverRidePolling(rideId) {
+        stopActiveDriverRidePolling();
+        state.driver.activeRidePollInterval = setInterval(async () => {
+            const statusRes = await apiGet('../driver/status.php').catch(() => null);
+            if (statusRes && statusRes.success) {
+                const activeRide = statusRes.active_ride;
+                if (!activeRide || activeRide.id !== rideId || activeRide.ride_status === 'cancelled' || activeRide.ride_status === 'completed') {
+                    stopActiveDriverRidePolling();
+                    state.driver.activeRide = null;
+                    state.driver.isAvailable = true;
+                    showDriverDashboard();
+                    alert('Active ride was cancelled or completed.');
+                } else if (activeRide.ride_status !== state.driver.activeRide.ride_status) {
+                    state.driver.activeRide = activeRide;
+                    loadActiveDriverRide(activeRide);
+                }
+            }
+        }, 3000);
+    }
+
+    function stopActiveDriverRidePolling() {
+        if (state.driver.activeRidePollInterval) {
+            clearInterval(state.driver.activeRidePollInterval);
+            state.driver.activeRidePollInterval = null;
+        }
+    }
+
     async function pollAvailableDriverRides() {
         if (!state.driver.isAvailable) return;
         const res = await apiGet('../driver/available_rides.php').catch(() => null);
@@ -1637,6 +1672,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadActiveDriverRide(ride) {
         state.driver.activeRide = ride;
         stopDriverRidesPolling();
+        
+        if (!state.driver.activeRidePollInterval) {
+            startActiveDriverRidePolling(ride.id);
+        }
 
         document.getElementById('driver-online-view').classList.add('hidden');
         document.getElementById('driver-offline-view').classList.add('hidden');
@@ -1662,7 +1701,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ride.ride_status === 'accepted') {
             advanceBtn.textContent = 'Arrived at Pickup';
             otpSection.classList.add('hidden');
-            if (cancelBtn) cancelBtn.style.display = 'none';
+            if (cancelBtn) cancelBtn.style.display = 'block';
         } else if (ride.ride_status === 'driver_arrived') {
             advanceBtn.textContent = 'Start Trip';
             otpSection.classList.remove('hidden');
@@ -1804,6 +1843,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await apiPost('../driver/complete_ride.php', { ride_id: ride.id }).catch(() => null);
                 btnDriverAdvance.disabled = false;
                 if (res && res.success) {
+                    stopActiveDriverRidePolling();
                     state.driver.activeRide = null;
                     state.driver.isAvailable = true;
                     showDriverDashboard();
@@ -1839,6 +1879,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btnDriverCancel.textContent = 'Cancel';
 
             if (res && res.success) {
+                stopActiveDriverRidePolling();
                 state.driver.activeRide = null;
                 state.driver.isAvailable = true;
                 showDriverDashboard();

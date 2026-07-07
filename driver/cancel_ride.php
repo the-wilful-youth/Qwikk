@@ -64,11 +64,11 @@ if ((int) $row['driver_id'] !== $sessionDriverId) {
     exit;
 }
 
-if ($row['ride_status'] !== 'driver_arrived') {
+if ($row['ride_status'] !== 'driver_arrived' && $row['ride_status'] !== 'accepted') {
     http_response_code(422);
     echo json_encode([
         'success' => false,
-        'message' => "Cannot cancel a ride with status '{$row['ride_status']}'. Status must be 'driver_arrived'.",
+        'message' => "Cannot cancel a ride with status '{$row['ride_status']}'. Status must be 'accepted' or 'driver_arrived'.",
     ]);
     exit;
 }

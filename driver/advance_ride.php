@@ -83,19 +83,7 @@ if (!array_key_exists($currentStatus, TRANSITIONS)) {
 
 $nextStatus = TRANSITIONS[$currentStatus];
 
-if ($currentStatus === 'driver_arrived') {
-    $otp = $_POST['otp'] ?? '';
-    if ($otp === '') {
-        http_response_code(422);
-        echo json_encode(['success' => false, 'message' => 'OTP is required to start the trip.']);
-        exit;
-    }
-    if (!$ride->verifyOtp($rideId, $otp)) {
-        http_response_code(422);
-        echo json_encode(['success' => false, 'message' => 'Invalid OTP. Please enter the correct code.']);
-        exit;
-    }
-}
+
 
 try {
     $ride->updateStatus($rideId, $nextStatus);
